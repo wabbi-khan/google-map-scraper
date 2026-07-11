@@ -1,31 +1,42 @@
-async function scrapeGmapsDeepData() {
-  // Grab EVERY single link on the page, no matter where it is located
-  const allLinks = Array.from(document.querySelectorAll("a"));
-  const validListings = [];
-  const seenUrls = new Set();
-
-  allLinks.forEach((link) => {
-    const href = link.href || "";
-    // If it's a valid place link and we haven't processed it yet
-    if (href.includes("/maps/place/") && !seenUrls.has(href)) {
-      seenUrls.add(href);
-      validListings.push(link);
-    }
-  });
-
-  const data = [];
+async function scrapeGmapsDeepData(maxResults) {
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  // Loop through the items up to a maximum of 30
-  for (let titleEl of validListings) {
-    if (data.length >= 30) break;
+  const scrollContainer =
+    document.querySelector('div[role="feed"]') ||
+    document.querySelector('.m6QErb[aria-label*="Results"]') ||
+    document.querySelector('.m6QErb[aria-label*="resultats"]') ||
+    document.querySelector('.m6QErb[aria-label*="résultats"]') ||
+    document.querySelector('div[role="main"]') ||
+    document.querySelector(".m6QErb");
+
+  const processed = new Set();
+  const data = [];
+
+  const getUnprocessedLinks = () => {
+    return Array.from(document.querySelectorAll("a"))
+      .filter((l) => l.href && l.href.includes("/maps/place/"))
+      .filter((l) => !processed.has(l.href));
+  };
+
+  while (data.length < maxResults) {
+    let candidates = getUnprocessedLinks();
+    if (candidates.length === 0) {
+      if (!scrollContainer) break;
+      const beforeScroll = getUnprocessedLinks().length;
+      scrollContainer.scrollBy(0, 800);
+      await delay(1500);
+      const afterScroll = getUnprocessedLinks().length;
+      if (afterScroll <= beforeScroll) break;
+      continue;
+    }
+
+    const titleEl = candidates[0];
+    processed.add(titleEl.href);
 
     try {
-      // 1. Click the listing link to open the side panel details
       titleEl.click();
-      await delay(2500); // Wait for the information to load completely
+      await delay(2500);
 
-      // 2. Extract name using your custom exact class fallback
       let nameEl = document.querySelector("h1.DUwDvf");
       let name = nameEl ? nameEl.innerText : "";
 
@@ -39,7 +50,6 @@ async function scrapeGmapsDeepData() {
         .trim();
       if (name === "Unknown" || name.length === 0) continue;
 
-      // 3. Extract rating and reviews using your custom layout
       let rating = "N/A";
       let reviewCount = "N/A";
       const reviewContainer = document.querySelector(".F7nice");
@@ -55,12 +65,10 @@ async function scrapeGmapsDeepData() {
           reviewCount = countEl.getAttribute("aria-label").replace(/[()]/g, "");
       }
 
-      // 4. Extract Address, Website and Phone Number
       let locationText = "N/A";
       let websiteUrl = "N/A";
       let phoneNumber = "N/A";
 
-      // Scan all text layouts matching your custom pattern (.AeaXub)
       const rows = document.querySelectorAll(".AeaXub");
       rows.forEach((row) => {
         const textEl = row.querySelector(".Io6YTe");
@@ -85,7 +93,6 @@ async function scrapeGmapsDeepData() {
         }
       });
 
-      // Fallback search for Phone number if rows don't yield it
       const phoneButton = document.querySelector(
         'button[data-item-id^="phone:tel:"], a[href^="tel:"]',
       );
@@ -153,12 +160,16 @@ document.getElementById("scrapeBtn").addEventListener("click", async () => {
   const statusEl = document.getElementById("status");
   statusEl.className = "status-box loading";
   statusEl.innerHTML =
-    '<span class="spinner-dots"><span></span><span></span><span></span></span> Scanning all links on page...';
+    '<span class="spinner-dots"><span></span><span></span><span></span></span> Scrolling & loading all results...';
+
+  const maxResults =
+    parseInt(document.getElementById("maxResults").value, 10) || 30;
 
   chrome.scripting.executeScript(
     {
       target: { tabId: tab.id },
       func: scrapeGmapsDeepData,
+      args: [maxResults],
     },
     (results) => {
       if (chrome.runtime.lastError) {
