@@ -1,133 +1,146 @@
 async function scrapeGmapsDeepData(maxResults) {
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  const scrollContainer =
-    document.querySelector('div[role="feed"]') ||
-    document.querySelector('.m6QErb[aria-label*="Results"]') ||
-    document.querySelector('.m6QErb[aria-label*="resultats"]') ||
-    document.querySelector('.m6QErb[aria-label*="résultats"]') ||
-    document.querySelector('div[role="main"]') ||
-    document.querySelector(".m6QErb");
-
-  const processed = new Set();
   const data = [];
 
-  const getUnprocessedLinks = () => {
-    return Array.from(document.querySelectorAll("a"))
-      .filter((l) => l.href && l.href.includes("/maps/place/"))
-      .filter((l) => !processed.has(l.href));
-  };
+  try {
+    const scrollContainer =
+      document.querySelector('div[role="feed"]') ||
+      document.querySelector('.m6QErb[aria-label*="Results"]') ||
+      document.querySelector('.m6QErb[aria-label*="resultats"]') ||
+      document.querySelector('.m6QErb[aria-label*="résultats"]') ||
+      document.querySelector('div[role="main"]') ||
+      document.querySelector(".m6QErb");
 
-  while (data.length < maxResults) {
-    let candidates = getUnprocessedLinks();
-    if (candidates.length === 0) {
-      if (!scrollContainer) break;
-      const beforeScroll = getUnprocessedLinks().length;
-      scrollContainer.scrollBy(0, 800);
-      await delay(1500);
-      const afterScroll = getUnprocessedLinks().length;
-      if (afterScroll <= beforeScroll) break;
-      continue;
-    }
+    const processed = new Set();
 
-    const titleEl = candidates[0];
-    processed.add(titleEl.href);
+    const getUnprocessedLinks = () => {
+      return Array.from(document.querySelectorAll("a"))
+        .filter((l) => l.href && l.href.includes("/maps/place/"))
+        .filter((l) => !processed.has(l.href));
+    };
 
-    try {
-      titleEl.click();
-      await delay(2500);
-
-      let nameEl = document.querySelector("h1.DUwDvf");
-      let name = nameEl ? nameEl.innerText : "";
-
-      if (!name) {
-        name =
-          titleEl.getAttribute("aria-label") || titleEl.innerText || "Unknown";
+    const scrollForMore = async () => {
+      if (!scrollContainer) return false;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const before = getUnprocessedLinks().length;
+        scrollContainer.scrollBy(0, 1000);
+        await delay(2000);
+        const after = getUnprocessedLinks().length;
+        if (after > before) return true;
       }
-      name = name
-        .replace(/·\s*Visited\s*link/gi, "")
-        .replace(/[\n\r]+/g, " ")
-        .trim();
-      if (name === "Unknown" || name.length === 0) continue;
+      return false;
+    };
 
-      let rating = "N/A";
-      let reviewCount = "N/A";
-      const reviewContainer = document.querySelector(".F7nice");
-      if (reviewContainer) {
-        const ratingEl = reviewContainer.querySelector(
-          'span[aria-hidden="true"]',
-        );
-        const countEl = reviewContainer.querySelector(
-          'span[aria-label*="reviews"]',
-        );
-        if (ratingEl) rating = ratingEl.innerText;
-        if (countEl)
-          reviewCount = countEl.getAttribute("aria-label").replace(/[()]/g, "");
+    while (data.length < maxResults) {
+      let candidates = getUnprocessedLinks();
+      if (candidates.length === 0) {
+        const loaded = await scrollForMore();
+        if (!loaded) break;
+        continue;
       }
 
-      let locationText = "N/A";
-      let websiteUrl = "N/A";
-      let phoneNumber = "N/A";
+      const titleEl = candidates[0];
+      processed.add(titleEl.href);
 
-      const rows = document.querySelectorAll(".AeaXub");
-      rows.forEach((row) => {
-        const textEl = row.querySelector(".Io6YTe");
-        if (textEl) {
-          const innerText = textEl.innerText || "";
-          const htmlContext = row.innerHTML;
+      try {
+        titleEl.click();
+        await delay(2500);
 
-          if (
-            htmlContext.includes("") ||
-            innerText.includes(".com") ||
-            innerText.includes(".org") ||
-            innerText.includes(".net")
-          ) {
-            const nestedLink = row.querySelector("a");
-            websiteUrl = nestedLink ? nestedLink.href : `https://${innerText}`;
-          } else if (
-            htmlContext.includes("") ||
-            /\b[A-Z]{2}\s\d{5}\b/i.test(innerText)
-          ) {
-            locationText = innerText;
-          }
+        let nameEl = document.querySelector("h1.DUwDvf");
+        let name = nameEl ? nameEl.innerText : "";
+
+        if (!name) {
+          name =
+            titleEl.getAttribute("aria-label") || titleEl.innerText || "Unknown";
         }
-      });
-
-      const phoneButton = document.querySelector(
-        'button[data-item-id^="phone:tel:"], a[href^="tel:"]',
-      );
-      if (phoneButton) {
-        const rawPhone =
-          phoneButton.getAttribute("data-item-id") ||
-          phoneButton.getAttribute("href");
-        phoneNumber = rawPhone
-          .replace("phone:tel:", "")
-          .replace("tel:", "")
+        name = name
+          .replace(/·\s*Visited\s*link/gi, "")
+          .replace(/[\n\r]+/g, " ")
           .trim();
-      } else {
-        const bodyText = document.body.innerText || "";
-        const phoneMatch = bodyText.match(
-          /(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/,
+        if (name === "Unknown" || name.length === 0) continue;
+
+        let rating = "N/A";
+        let reviewCount = "N/A";
+        const reviewContainer = document.querySelector(".F7nice");
+        if (reviewContainer) {
+          const ratingEl = reviewContainer.querySelector(
+            'span[aria-hidden="true"]',
+          );
+          const countEl = reviewContainer.querySelector(
+            'span[aria-label*="reviews"]',
+          );
+          if (ratingEl) rating = ratingEl.innerText;
+          if (countEl)
+            reviewCount = countEl.getAttribute("aria-label").replace(/[()]/g, "");
+        }
+
+        let locationText = "N/A";
+        let websiteUrl = "N/A";
+        let phoneNumber = "N/A";
+
+        const rows = document.querySelectorAll(".AeaXub");
+        rows.forEach((row) => {
+          const textEl = row.querySelector(".Io6YTe");
+          if (textEl) {
+            const innerText = textEl.innerText || "";
+            const htmlContext = row.innerHTML;
+
+            if (
+              htmlContext.includes("") ||
+              innerText.includes(".com") ||
+              innerText.includes(".org") ||
+              innerText.includes(".net")
+            ) {
+              const nestedLink = row.querySelector("a");
+              websiteUrl = nestedLink ? nestedLink.href : `https://${innerText}`;
+            } else if (
+              htmlContext.includes("") ||
+              /\b[A-Z]{2}\s\d{5}\b/i.test(innerText)
+            ) {
+              locationText = innerText;
+            }
+          }
+        });
+
+        const phoneButton = document.querySelector(
+          'button[data-item-id^="phone:tel:"], a[href^="tel:"]',
         );
-        if (phoneMatch) phoneNumber = phoneMatch[0];
+        if (phoneButton) {
+          const rawPhone =
+            phoneButton.getAttribute("data-item-id") ||
+            phoneButton.getAttribute("href");
+          phoneNumber = rawPhone
+            .replace("phone:tel:", "")
+            .replace("tel:", "")
+            .trim();
+        } else {
+          const bodyText = document.body.innerText || "";
+          const phoneMatch = bodyText.match(
+            /(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/,
+          );
+          if (phoneMatch) phoneNumber = phoneMatch[0];
+        }
+
+        data.push({
+          name,
+          rating,
+          reviewCount,
+          hasWebsite: websiteUrl !== "N/A" ? "Yes" : "No",
+          websiteUrl,
+          locationText,
+          phoneNumber,
+          mapsUrl: titleEl.href,
+        });
+      } catch (err) {
+        console.error("Failed item extraction row:", err);
       }
-
-      data.push({
-        name,
-        rating,
-        reviewCount,
-        hasWebsite: websiteUrl !== "N/A" ? "Yes" : "No",
-        websiteUrl,
-        locationText,
-        phoneNumber,
-        mapsUrl: titleEl.href,
-      });
-    } catch (err) {
-      console.error("Failed item extraction row:", err);
     }
-  }
 
-  return data;
+    return data;
+  } catch (e) {
+    console.error("scrapeGmapsDeepData error:", e);
+    return data || [];
+  }
 }
 
 function downloadCSV(data) {
