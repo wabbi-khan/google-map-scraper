@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Google Maps Lead Scraper",
+  "version": "2.0",
+  "description": "Extracts names, websites, phone numbers, and directions from Google Maps.",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

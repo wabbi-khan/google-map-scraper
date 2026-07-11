@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        width: 280px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          Oxygen, Ubuntu, sans-serif;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: #e2e8f0;
+        padding: 20px;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+
+      .header-icon {
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #22d3ee, #3b82f6);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex-shrink: 0;
+      }
+
+      .header h1 {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.3px;
+        background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .header-badge {
+        margin-left: auto;
+        font-size: 9px;
+        font-weight: 600;
+        background: rgba(34, 211, 238, 0.15);
+        color: #22d3ee;
+        padding: 2px 7px;
+        border-radius: 6px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        border: 1px solid rgba(34, 211, 238, 0.2);
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 11px 0;
+        background: linear-gradient(135deg, #22d3ee, #3b82f6);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .btn-icon {
+        display: inline-block;
+        margin-right: 6px;
+      }
+
+      .status-box {
+        margin-top: 14px;
+        padding: 10px 12px;
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 8px;
+        font-size: 11.5px;
+        color: #94a3b8;
+        text-align: center;
+        line-height: 1.5;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .status-box.success {
+        color: #4ade80;
+        border-color: rgba(74, 222, 128, 0.2);
+        background: rgba(74, 222, 128, 0.08);
+      }
+
+      .status-box.error {
+        color: #f87171;
+        border-color: rgba(248, 113, 113, 0.2);
+        background: rgba(248, 113, 113, 0.08);
+      }
+
+      .status-box.loading {
+        color: #fbbf24;
+        border-color: rgba(251, 191, 36, 0.2);
+        background: rgba(251, 191, 36, 0.08);
+      }
+
+      .spinner-dots {
+        display: inline-flex;
+        gap: 4px;
+        margin-right: 6px;
+      }
+
+      .spinner-dots span {
+        width: 5px;
+        height: 5px;
+        background: #fbbf24;
+        border-radius: 50%;
+        animation: dotPulse 1.2s ease-in-out infinite;
+      }
+
+      .spinner-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .spinner-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes dotPulse {
+        0%,
+        80%,
+        100% {
+          opacity: 0.3;
+          transform: scale(0.8);
+        }
+        40% {
+          opacity: 1;
+          transform: scale(1.2);
+        }
+      }
+
+      .footer {
+        margin-top: 14px;
+        text-align: center;
+        font-size: 9.5px;
+        color: #475569;
+        letter-spacing: 0.3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="header-icon">🗺</div>
+      <h1>Maps Scraper</h1>
+      <span class="header-badge">v2</span>
+    </div>
+
+    <div class="card">
+      <button class="btn" id="scrapeBtn">
+        <span class="btn-icon">⚡</span> Scrape Current List
+      </button>
+      <div class="status-box" id="status">
+        Open Google Maps list &amp; click Scrape.
+      </div>
+    </div>
+
+    <div class="footer">Extract leads from any Google Maps search</div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
